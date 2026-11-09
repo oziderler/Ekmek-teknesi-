@@ -268,12 +268,14 @@ def likidite(h4, a4, son=150):
         for s in sh:
             if s < t - 1 and (s + 1 >= t or h[s + 1:t].max() < h[s]) and h[t] > h[s] > c[t]:
                 olaylar.append({"metin": f"💧 4S üst likidite süpürüldü ({fmt(h[s])}) – fitil üstte, kapanış altta",
-                                "key": f"sweep|4S|up|{x.index[t].isoformat()}"})
+                                "key": f"sweep|4S|up|{x.index[t].isoformat()}",
+                                "tip": "4S Likidite Sweep (üst)", "yon": -1})
                 break
         for s in sl:
             if s < t - 1 and (s + 1 >= t or l[s + 1:t].min() > l[s]) and l[t] < l[s] < c[t]:
                 olaylar.append({"metin": f"💧 4S alt likidite süpürüldü ({fmt(l[s])}) – fitil altta, kapanış üstte",
-                                "key": f"sweep|4S|dn|{x.index[t].isoformat()}"})
+                                "key": f"sweep|4S|dn|{x.index[t].isoformat()}",
+                                "tip": "4S Likidite Sweep (alt)", "yon": 1})
                 break
     return seviyeler, olaylar
 
@@ -306,12 +308,13 @@ def kapanmis(df, sure, simdi):
     return df[df.index + sure <= simdi]
 
 
-def analiz_et(h4, d1, piyasa):
-    simdi = pd.Timestamp.now(tz="UTC")
+def analiz_et(h4, d1, piyasa, simdi=None):
+    """simdi verilmezse şu an; backtest geçmiş bir anı verebilir."""
+    simdi = simdi if simdi is not None else pd.Timestamp.now(tz="UTC")
     fiyat = float(h4.close.iloc[-1])
     if piyasa == "bist":
-        bugun = pd.Timestamp(datetime.now(TR).strftime("%Y-%m-%d"), tz="UTC")
-        tr_saat = datetime.now(TR)
+        tr_saat = simdi.tz_convert(TR)
+        bugun = pd.Timestamp(tr_saat.strftime("%Y-%m-%d"), tz="UTC")
         kapanis_gecti = (tr_saat.hour, tr_saat.minute) >= (18, 15)
         d1c = d1[(d1.index < bugun) | ((d1.index == bugun) & kapanis_gecti)]
         ref = bugun
@@ -352,7 +355,8 @@ def analiz_et(h4, d1, piyasa):
                     anlam = ("trend dönüşü sinyali" if e["tur"] == "CHoCH"
                              else ("yükseliş yapısı devam" if e["yon"] == 1 else "düşüş yapısı devam"))
                     olaylar.append({"metin": f"{ok} {tf} {e['tur']} – {fmt(e['seviye'])} kapanışla kırıldı ({anlam})",
-                                    "key": f"yapi|{tf}|{e['yon']}|{df.index[e['i']].isoformat()}"})
+                                    "key": f"yapi|{tf}|{e['yon']}|{df.index[e['i']].isoformat()}",
+                                    "tip": f"{tf} {e['tur']}", "yon": e["yon"]})
 
     for s in seviyeler:
         s.setdefault("key", f"{s['ad']}|{s['lo']:.6g}")
